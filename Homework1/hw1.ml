@@ -31,7 +31,29 @@ let rec revl cur l = match l with
 				;;
 
 let rev x = (revl [] x);;
-let merge_sort x = failwith "Not implemented";;
+
+let rec merge1 a ans = match a with 
+						| [] -> ans
+						| ha :: ta -> merge1 ta (ha :: ans);;
+
+let rec merge0 a b ans = match (a, b) with
+						| ([], []) -> ans
+						| (ha :: ta, []) -> merge1 a ans
+						| ([], hb :: tb) -> merge1 b ans
+						| (ha :: ta, hb :: tb) -> merge0 
+							(if ha < hb then ta else a)
+							(if ha < hb then b else tb) 
+							(if ha < hb then (ha :: ans) else (hb :: ans));;
+
+let merge a b = merge0 a b [];;
+
+let rec merge_sort_rec a left right = if (left + 1) >= right then (List.nth a left) :: [] else 
+	let mid = (left + right) / 2 in
+	let sortedleft = merge_sort_rec a left mid in
+	let sortedright = merge_sort_rec a mid right in
+	rev (merge sortedleft sortedright);;
+
+let merge_sort x = merge_sort_rec x 0 (List.length x);;
                      
 let string_of_lambda x = failwith "Not implemented";;
 let lambda_of_string x = failwith "Not implemented";;
