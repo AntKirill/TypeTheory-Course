@@ -4,46 +4,46 @@ type lambda = Var of string | Abs of string * lambda | App of lambda * lambda;;
 let rec peano_of_int x = if x = 0 then Z else S (peano_of_int (x - 1));;
 
 let rec int_of_peano p = match p with
-    Z -> 0
+  | Z -> 0
   | S x -> 1 + int_of_peano x;;
 
-let inc x = S (x);;
+let inc x = S x;;
 let rec add x y = match y with
-				Z -> x
-				| S c -> S (add x c)
+	| Z -> x
+	| S c -> S (add x c)
 			;;
 let rec mul x y = match y with
-				Z -> Z
-				| S c -> add (mul x c) x;;
+	| Z -> Z
+	| S c -> add (mul x c) x;;
+
 let rec sub a b = match (a, b) with
-				(S c , Z) -> a
-				| (S c, S d) -> sub c d
-				| (Z, Z) -> Z
-				| _ -> failwith "second argument is greater"
+	| (S c , Z) -> a
+	| (S c, S d) -> sub c d
+	| (Z, Z) -> Z
+	| _ -> failwith "second argument is greater"
 			;;
 let rec power x y = match y with
-				Z -> S Z
-				| S c -> mul (power x c) x;;
+	| Z -> S Z
+	| S c -> mul (power x c) x;;
                      
 let rec revl cur l = match l with 
-						[] -> cur
-					|	hd :: tl -> revl (hd :: cur) tl
-				;;
+	| [] -> cur
+	| hd :: tl -> revl (hd :: cur) tl;;
 
 let rev x = (revl [] x);;
 
 let rec merge1 a ans = match a with 
-						| [] -> ans
-						| ha :: ta -> merge1 ta (ha :: ans);;
+	| [] -> ans
+	| ha :: ta -> merge1 ta (ha :: ans);;
 
 let rec merge0 a b ans = match (a, b) with
-						| ([], []) -> ans
-						| (ha :: ta, []) -> merge1 a ans
-						| ([], hb :: tb) -> merge1 b ans
-						| (ha :: ta, hb :: tb) -> merge0 
-							(if ha < hb then ta else a)
-							(if ha < hb then b else tb) 
-							(if ha < hb then (ha :: ans) else (hb :: ans));;
+	| ([], []) -> ans
+	| (ha :: ta, []) -> merge1 a ans
+	| ([], hb :: tb) -> merge1 b ans
+	| (ha :: ta, hb :: tb) -> merge0 
+		(if ha < hb then ta else a)
+		(if ha < hb then b else tb) 
+		(if ha < hb then (ha :: ans) else (hb :: ans));;
 
 let merge a b = merge0 a b [];;
 
