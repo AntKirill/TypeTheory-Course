@@ -75,11 +75,6 @@ let rec string_of_lambda x = match x with
 	| App (exprl, exprr) -> 
 		let strl = string_of_lambda exprl in
 		let strr = string_of_lambda exprr in "("^strl^") ("^strr^")";;
-(* 		match (strl, strr) with 
-			|("  ", "  ") -> ""
-			|("  ", str) -> "("^str^")"
-			|(str, "  ") -> "("^str^")"
-			|(strl, strr) -> "("^strl^") ("^strr^")";; *)
 
 let lambda_of_string x = 
 	let rec parse s =

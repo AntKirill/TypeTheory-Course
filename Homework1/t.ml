@@ -42,7 +42,7 @@ let sort_list_test() =
 	print_newline();;
 
 let lambda_test() = 
-	let lam = lambda_of_string "(\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y" in
+	let lam = lambda_of_string "((((((((\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y )))))))" in
 	let lam1 = lambda_of_string "(\\x.((\\x.x)(\\a.b)(\\x.\\y.\\x.y)(\\x.x)(\\x.(\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y)(\\a.b)y))y" in
 	let lam2 = lambda_of_string "(\\x.x)(\\a.b)y" in
 	let str = string_of_lambda lam in
