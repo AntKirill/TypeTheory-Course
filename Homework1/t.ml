@@ -23,7 +23,7 @@ let rec print_list x = match x with
 	| hd :: tl -> (print_int hd; print_string " "; print_list tl);;
 
 let rev_list_test() = 
-	let l = -1 :: 0 :: 1 :: 2 :: 3 :: 4 :: 5 :: [] in 
+	let l = [-1; 0; 1; 2; 3; 4; 5] in 
 	let a = rev l in
 	print_string "the reverse of ";
 	print_list l;
@@ -32,7 +32,7 @@ let rev_list_test() =
 	print_newline();;
 
 let sort_list_test() = 
-	let l = 1 :: 0 :: -2017 :: 2017 :: 7 :: 3 :: 14 :: 2 :: 71 :: [] in
+	let l = [1; 0; -2017; 2017; 7; 3; 14; 2; 71] in
 	let a = merge_sort l in
 	print_string "the result of sort of the list:\n";
 	print_list l;
@@ -41,23 +41,19 @@ let sort_list_test() =
 	print_list a;
 	print_newline();;
 
-let lambda_test() = 
-	let lam = lambda_of_string "((((((((\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y )))))))" in
-	let lam1 = lambda_of_string "(\\x.((\\x.x)(\\a.b)(\\x.\\y.\\x.y)(\\x.x)(\\x.(\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y)(\\a.b)y))y" in
-	let lam2 = lambda_of_string "(\\x.x)(\\a.b)y" in
-	let str = string_of_lambda lam in
-	let str1 = string_of_lambda lam1 in
-	let str2 = string_of_lambda lam2 in
-	print_string str;
-	print_newline();
-	print_string str1;
-	print_newline();
-	print_string str2;
-	print_newline();;
-
+let lambda_test() =
+	let go s = 
+		let lam = lambda_of_string s in
+		let str = string_of_lambda lam in
+		print_string str;
+		print_newline() in
+	go "((((((((\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y )))))))";
+	go "(\\x.((\\x.x)(\\a.b)(\\x.\\y.\\x.y)(\\x.x)(\\x.(\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.b)y)(\\a.b)y))y";
+	go "(\\x.x)   (\\a.b)     y";
+	go "(\\x.x)                                       (\\a.b)";
+	go "\\x.\\y.x";
+	go "x y";;
 
 lambda_test();;
 
-(*
-print_string (Hw1.string_of_lambda (Hw1.lambda_of_string "\\x.\\y.x"));;
-*)
+(* print_string (Hw1.string_of_lambda (Hw1.lambda_of_string "\\x.\\y.x"));; *)

@@ -17,7 +17,7 @@ let rec mul x y = match y with
 	| Z -> Z
 	| S c -> add (mul x c) x;;
 
-	let rec sub a b = match (a, b) with
+let rec sub a b = match (a, b) with
 	| (S c , Z) -> a
 	| (S c, S d) -> sub c d
 	| (Z, Z) -> Z
@@ -90,10 +90,10 @@ let lambda_of_string x =
 		let has_next () = if (!pos < String.length s - 1) then true else false in
 		let next () = if has_next() then pos := (!pos + 1) in
 		let rec ignore_whitespace () = if ((s.[!pos] = ' ') && (has_next())) then (next (); ignore_whitespace()) in
-		let get () = (ignore_whitespace(); s.[!pos]) in
+		let get () = (ignore_whitespace (); s.[!pos]) in
 		let eat x = if get() <> x then failwith "unexpected symbol" else next() in
 		let get_symbol () = 
-			let has_el x = if (x = get()) then true else false in
+			let has_el x = if (x = s.[!pos]) then true else false in
 			let rec gs x = if (CharS.exists has_el alphabet)
 				then (
 					x :=  (!x)^(String.make 1 (get()));
@@ -117,6 +117,7 @@ let lambda_of_string x =
 			let lambda = (get_lambda (get() )) in
 			let reflambda = ref lambda in
 			while ( has_next() && (get() <> ')')) do
+				(* print_string "hello!\n"; *)
 				reflambda := parse_app (!reflambda);
 			done;
 			!reflambda in
