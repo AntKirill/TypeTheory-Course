@@ -117,7 +117,6 @@ let lambda_of_string x =
 			let lambda = (get_lambda (get() )) in
 			let reflambda = ref lambda in
 			while ( has_next() && (get() <> ')')) do
-				(* print_string "hello!\n"; *)
 				reflambda := parse_app (!reflambda);
 			done;
 			!reflambda in
