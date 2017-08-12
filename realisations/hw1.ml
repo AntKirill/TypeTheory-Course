@@ -112,7 +112,7 @@ let lambda_of_string x =
 			and parse_abs() = 
 				let x = get_symbol() in 
 				eat '.';
-				let l = get_lambda(get ()) in
+				let l = parse_lambda() in
 				Abs(x, l) in
 			let lambda = (get_lambda (get() )) in
 			let reflambda = ref lambda in

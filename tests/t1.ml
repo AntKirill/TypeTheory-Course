@@ -53,7 +53,9 @@ let lambda_test() =
 	go "(\\x.x)                                       (\\a.b)";
 	go "\\x.\\y.x";
 	go "x y a b c d e f g h type theory lambda lambda uraaa z";
-	go "x \\x.bbb ur a a a a \\x.bbb";;
+	go "x \\x.bbb ur a a a a \\x.bbb";
+	go "(\\x.x x) \\y.y y";
+	go "(\\x.y y) (a b c d) ((\\x.x x) \\y.y y)";;
 
 lambda_test();;
 
