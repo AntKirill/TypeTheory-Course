@@ -35,5 +35,20 @@ let apply_substitution subst term =
 	in
 	apply subst term;;
 
-let check_solution x y = failwith "Not implemented";;
+let check_solution subst system = 
+	let is_equal eq = 
+		let (lhs, rhs) = eq in
+		let (lhs, rhs) = (apply_substitution subst lhs, apply_substitution subst rhs) in 
+		let rec dfs lhs rhs = 
+			match (lhs, rhs) with 
+				| (Var x, Var y) -> x = y
+				| (Fun (name1, l1), Fun (name2, l2)) -> (name1 = name2) && (List.length l1 = List.length l2) &&
+					let l = List.combine l1 l2 in 
+					List.for_all (fun x -> let (a, b) = x in (dfs a b)) l
+				| _ -> false
+		in 
+		dfs lhs rhs
+	in
+	List.for_all is_equal system;;
+	
 let solve_system x = failwith "Not implemented";;

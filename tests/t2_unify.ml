@@ -76,6 +76,24 @@ let test_apply_substitution () =
 	go subst2 term2
 ;;
 
+let test_check_solution () =
+	let go subst system = 
+		let ans = Hw2_unify.check_solution subst system in
+		match ans with
+			| true -> print_string "True\n"
+			| false -> print_string "False\n"
+	in
+	let system1 = [(term1, (Var "y"))] in
+	let sol1 = [("y", term1)] in
+	let sol2 = [("y", term2)] in
+	go sol1 system1;
+	go sol2 system1;
+	let term1 = Fun ("F", [Var "x"; Var "y"]) in
+	let sol = [("y", Fun ("f", [Var "e"; Var "d"; Var "c"])); ("x", Fun ("f", [Var "a"; Var "b"; Var "c"]))] in
+	let system2 = [(term1, term2)] in
+	go sol system2;;
+
 (* f();; *)
 (* test_system_to_eq ();; *)
-test_apply_substitution ();;
+(* test_apply_substitution ();; *)
+test_check_solution ();;
