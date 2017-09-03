@@ -19,6 +19,21 @@ let system_to_equation x =
 	let fresh_name = "super_fresh_name_" ^ fresh_name in
 	(Fun(fresh_name, lhs_list), Fun(fresh_name, rhs_list));;
 
-let apply_substitution x y = failwith "Not implemented";;
+let apply_substitution subst term = 
+	let rec find subst x = 
+		match subst with
+			| hd :: tl -> 
+				let (str, y) = hd in
+				if str = x then y
+				else find tl x
+			| [] -> Var x
+	in
+	let rec apply subst term = 
+		match term with 
+			| Fun (name, l) -> Fun (name, (List.map (fun x -> apply subst x) l))
+			| Var x -> find subst x
+	in
+	apply subst term;;
+
 let check_solution x y = failwith "Not implemented";;
 let solve_system x = failwith "Not implemented";;

@@ -14,7 +14,7 @@ let term_to_string a =
 (* (F x) *)
 let term1 = Fun ("F", [Var "x"]);;
 
-(* (F (f a b c) (f e d f)) *)
+(* (F (f a b c) (f e d c)) *)
 let term2 = Fun ("F", [(Fun ("f", [(Var "a"); (Var "b"); (Var "c")])); (Fun ("f", [(Var "e"); (Var "d"); (Var "c")]))]);;
 
 (* (F (f a b c) (f e d f) (G (G (g (H (h a b c) (h e d c)) b c)) (g e d f)) ) *)
@@ -23,6 +23,17 @@ Fun ("G", [Fun("G", [
 Fun ("g", [Fun ("H", [Fun("h", [Var "a"; Var "b"; Var "c"]);Fun("h", [Var "e"; Var "d"; Var "c"])]); Var "b"; Var "c"])
 ]) ;Fun ("g", [Var "e"; Var "d"; Var "f"])])
 ]);;
+
+let f () =
+	let go aterm = 
+		let str = term_to_string aterm in
+		print_string str;
+		print_newline ()
+	in
+	go (Var "x");
+	go term1;
+	go term2;
+	go term3;;
 
 let test_system_to_eq () = 
 	let go a = 
@@ -40,17 +51,31 @@ let test_system_to_eq () =
 	go system2;
 	go system3;;
 
-let f () =
-	let go aterm = 
-		let str = term_to_string aterm in
+let test_apply_substitution () =
+	let go subst a = 
+		let rec print_subst s = 
+			match s with 
+				| hd :: tl -> 
+					let (x, y) = hd in
+					print_string (x ^ " -> " ^ (term_to_string y) ^ ", "); 
+					print_subst tl
+				| [] -> print_string ";"
+		in	
+		let new_term = Hw2_unify.apply_substitution subst a in
+		let str_a = term_to_string a in
+		let str = term_to_string new_term in
 		print_string str;
+		print_string " for test: ";
+		print_string (str_a ^ " with subst: ");
+		print_subst subst;
 		print_newline ()
 	in
-	go (Var "x");
-	go term1;
-	go term2;
-	go term3;;
+	let subst1 = [("x", term1)] in
+	go subst1 term1;
+	let subst2 = [("a", term1); ("c", term1)] in
+	go subst2 term2
+;;
 
 (* f();; *)
-
-test_system_to_eq ();;
+(* test_system_to_eq ();; *)
+test_apply_substitution ();;
