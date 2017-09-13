@@ -90,89 +90,90 @@ let is_normal_form p =
 			| _ -> true
 	in inf p;;
 
-(* Проверить возможноесть подстановки. Параметры:
-что подставляем, где подставляем, вместо чего подставляем*)
-(* (\\var_name.l) term *)
-let try_to_subst term l var_name = 
-	let fv = StringSet.of_list (free_vars term) in
-	let subst_state = ref (-2) in
-	let rec dfs l bl = 
-		(*  1 - нашли вершину с правильным именем, свободную для подстановки
-			0 - ни у одной вершины в поддереве не совпало имя с var_name
-			-1 - нашил вершину с правильным именем, но она не свободна для подстановки *)
-		let update_subst_state i1 i2 = 
-			if (i1 = 1 || i2 = 1) then subst_state := 1 
-			else if (i1 = 0 && i2 = 0) then subst_state := 0
-			else subst_state := -1
-		in
-		let check_var x bl = 
-			let intersects s1 s2 = 
-				let s_inter = StringSet.inter s1 s2 in not (StringSet.is_empty s_inter)
-			in
-			if (x <> var_name) then (subst_state := 0; Var x)
-			else if (intersects fv bl) then (subst_state := -1; Var x)
-			else (subst_state := 1; term)
-		in
-		match l with 
-			| App (m, n) -> 
-				let new_left_term = dfs m bl in
-				let done_left = !subst_state in 
-				let new_right_term = dfs n bl in
-				let done_right = !subst_state in
-				update_subst_state done_left done_right;
-				App (new_left_term, new_right_term)
-			| Var x -> check_var x bl
-			| Abs (x, n) -> Abs (x, (dfs n (StringSet.add x bl)))
-	in
-	let new_term = dfs l StringSet.empty in
-	match !subst_state with 
-		| -1 -> (false, new_term)
-		| 0 -> (true, l)
-		| 1 -> (true, new_term)
-		| _ -> (false, new_term)
-;;
 
-let _normal_beta_reduction_impl a = 
-	let is_step_done = ref false in
-	let rec dfs term = 
-		let _app left right = 
-			(* (\\x.p) m *)
-			let part_case left right = 
-				let new_left = dfs left in 
-				if !is_step_done then App(new_left, right)
-				else let new_right = dfs right in
-				App (new_left, new_right)
-			in
-			let redex_case x p m = 
-				let (is_done, new_term) = try_to_subst m p x in
-				if is_done then (is_step_done := true; new_term)
-				else part_case p m 
-			in
-			match left with Abs (x, p) -> redex_case x p right
-				| _ -> part_case left right
-		in
-		match term with 
-			| App (m, n) -> _app m n
-			| Abs (x, m) -> Abs (x, (dfs m))
-			| t -> t
+let fresh_var_counter = ref 0;;
+
+type lamRef = VarRef of string
+	| AbsRef of (string * lamRef ref)
+	| AppRef of (lamRef ref * lamRef ref);;
+
+let rec to_lamRef lam = 
+	match lam with
+	| Var a -> ref (VarRef a)
+	| App (a, b) -> ref (AppRef (to_lamRef a, to_lamRef b))
+	| Abs (a, b) -> ref (AbsRef (a, to_lamRef b));;
+
+let rec from_lamRef lr = 
+	match !lr with
+	| VarRef a -> Var a
+	| AppRef (a, b) -> App (from_lamRef a, from_lamRef b)
+	| AbsRef (a, b) -> Abs (a, from_lamRef b);;
+
+let generate_fresh_var () = 
+	fresh_var_counter := !fresh_var_counter + 1;
+	("fresh$" ^ string_of_int !fresh_var_counter);;
+
+let rec to_alpha_eq l map = 
+	match l with
+	| Var a -> if StringMap.mem a map then Var (StringMap.find a map) else l
+	| App (a, b) -> App(to_alpha_eq a map, to_alpha_eq b map)
+	| Abs (a, b) -> 
+		let new_var = generate_fresh_var () in
+		Abs(new_var, to_alpha_eq b (StringMap.add a new_var map));;
+
+let _normal_beta_reduction_impl lr = 
+	let rec try_to_subst term lr var = 
+		match !lr with
+		| VarRef a -> if a = var then lr := !term
+	  	| AppRef (a, b) -> try_to_subst term a var; try_to_subst term b var
+	  	| AbsRef (a, b) -> if a <> var then try_to_subst term b var
 	in
-	let new_term = dfs a in (!is_step_done, new_term)	
-;;
+	let rec reduction_impl lr = 
+		let app_case a b = 
+			match !a with					
+			| AbsRef (x, y) ->
+				let fresh_var = generate_fresh_var () in
+				lr := !(to_lamRef (to_alpha_eq (from_lamRef y)
+				(StringMap.singleton x fresh_var)));
+				try_to_subst b lr fresh_var;
+				Some lr
+			| _ -> (
+				match reduction_impl a with Some x -> Some lr | None -> (
+					match reduction_impl b with
+					| Some x -> Some lr
+					| None -> None
+				))
+		in
+		match !lr with
+		| VarRef a -> None
+		| AppRef (a, b) -> app_case a b
+		| AbsRef (a, b) -> (
+			match reduction_impl b with
+			| Some x -> Some lr
+			| None -> None
+		)
+	in reduction_impl lr;;
 
 (* Выполнить один шаг бета-редукции, используя нормальный порядок *)
-let normal_beta_reduction a = 
-	let (is_step_done, new_term) = _normal_beta_reduction_impl a in
-	new_term
-;;
+let normal_beta_reduction l = 
+	let lr = to_lamRef (to_alpha_eq l StringMap.empty) in
+	let new_lr = _normal_beta_reduction_impl lr in 
+	fresh_var_counter := 0;
+	match new_lr with
+	| Some x -> from_lamRef x
+	| None -> l;;
 
 (* Свести выражение к нормальной форме с использованием нормального
    порядка редукции; реализация должна быть эффективной: использовать 
    мемоизацию *)
-let reduce_to_normal_form a = 
-	let rec do_step a = 
-		let (is_step_done, new_term) = _normal_beta_reduction_impl a in
-		if is_step_done then do_step new_term
-		else a
+let rec reduce_to_normal_form l = 
+	let lr = to_lamRef (to_alpha_eq l StringMap.empty) in	
+	let rec do_step r = 
+		let new_ref = _normal_beta_reduction_impl r in
+		match new_ref with
+		| Some x -> do_step r
+	  	| None -> r
 	in
-	do_step a
-;;
+	fresh_var_counter := 0;
+	let new_lambda = from_lamRef (do_step lr) in 
+	new_lambda;;

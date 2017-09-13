@@ -67,8 +67,7 @@ let test_is_alpha_equivalent () =
 	go "\\x.y" "\\x.z";
 	go "(\\x.y)" "(\\xxx.y)";
 	go "(\\x.y) (\\xx.y)" "(\\xxx.y) (\\xx.y)";
-	go "(\\x.y) (\\xx.y) (\\xxx.yyy)" "(\\xxx.y) (\\xx.y) (\\x.yyy)"
-;;
+	go "(\\x.y) (\\xx.y) (\\xxx.yyy)" "(\\xxx.y) (\\xx.y) (\\x.yyy)";;
 
 let tests_for_reduction_1 = [
 	"x";	
@@ -78,8 +77,8 @@ let tests_for_reduction_1 = [
 	"(\\x.(\\x.x) (\\x.x)) (\\y.z)";
 	"(\\f.\\x.f (f (f (f x)))) (\\f.\\x.f (f (f (f x))))";
 	"(\\f.\\x.f (f (f (f (f x))))) (\\f.\\x.f (f (f (f (f x)))))";
-	"(\\x.x x x) (\\x.x) (\\x.x)";
-	"(\\x.x x) \\y.y y";
+	"(\\x.x x x) (\\x.x) (\\x.x)"
+(* 	"(\\x.x x) \\y.y y";
 	"(\\x.x x) \\y.y y z";
 	"((((((((\\x.\\y.\\x.y)(\\x.x)(\\x.x)(\\a.y)b)))))))";
 	"(\\x.x)\\y.x";
@@ -94,15 +93,20 @@ let tests_for_reduction_1 = [
 	"(\\x.\\y.(\\a.b) x) y";
 	"(\\x.\\y.(\\a.\\x.a) x) y";
 	"(\\x.y) (\\xx.y) (\\xxx.yyy)";
-	"((\\x.(x) (x))) ((\\x.(x) (x)))"
+	"((\\x.(x) (x))) ((\\x.(x) (x)))" *)
 ];;
 
 let tests_for_reduction_2 = [
-	"(\\x.x x x) (\\x.x) (\\x.x)";
-	"(\\x.x x x) ((\\x.x) (\\x.x))";
+	"x";	
+	"\\x.y";
+	"\\x.x";
+	"(\\x.x)(\\z.y)";
+	"(\\x.(\\x.x) (\\x.x)) (\\y.z)";
 	"(\\f.\\x.f (f (f (f x)))) (\\f.\\x.f (f (f (f x))))";
-	"(\\f.\\x.f (f (f (f (f x))))) (\\f.\\x.f (f (f (f (f x)))))";	
-	"(\\x.x x) (\\x.x x)";
+	"(\\f.\\x.f (f (f (f (f x))))) (\\f.\\x.f (f (f (f (f x)))))";
+	"(\\x.x x x) (\\x.x) (\\x.x)";
+	"((\\l0.((\\l1.((\\l2.((\\l3.((\\l4.((\\l5.((\\l6.((\\l7.((\\l8.((\\l9.((\\l10.((\\l11.((\\l12.((\\l13.((l13 (\\l14.(\\l15.(l14 (l14 l15))))) (\\l14.(\\l15.(l14 (l14 (l14 l15))))))) (\\l13.(\\l14.(((l0 (\\l15.(\\l16.(\\l17.(((l1 (l10 l16)) (l12 l17)) (((l1 (l10 l17)) ((l15 (l11 l16)) (\\l18.(\\l19.(l18 l19))))) ((l15 (l11 l16)) ((l15 l16) (l11 l17))))))))) l13) l14))))) (\\l12.(\\l13.(\\l14.((l12 l13) (l13 l14))))))) (\\l11.(\\l12.(\\l13.(((l11 (\\l14.(\\l15.(l15 (l14 l12))))) (\\l14.l13)) (\\l14.l14))))))) (\\l10.((l10 (\\l11.l3)) l2)))) (l0 (\\l9.(\\l10.(\\l11.((\\l12.((\\l13.(((l1 l12) l13) (((l1 l13) l12) ((l9 (l4 l10)) (l4 l11))))) (l8 l11))) (l8 l10)))))))) (\\l8.((l8 (\\l9.l3)) l2)))) (\\l7.(\\l8.((l8 l4) l7))))) (\\l6.(\\l7.((l6 l5) l7))))) (\\l5.(\\l6.(\\l7.((l5 l6) (l6 l7))))))) (\\l4.(\\l5.(\\l6.(((l4 (\\l7.(\\l8.(l8 (l7 l5))))) (\\l7.l6)) (\\l7.l7))))))) (\\l3.(\\l4.l4)))) (\\l2.(\\l3.l2)))) (\\l1.(\\l2.(\\l3.((l1 l2) l3)))))) (\\l0.((\\l1.(l0 (l1 l1))) (\\l1.(l0 (l1 l1))))))";
+	"\\a.\\b.a (a (a (a (a (a (a (a (a b))))))))"
 ];;
 
 let test_reduction tests f = 
@@ -134,40 +138,6 @@ let test_normal_beta_reduction () =
 	in
 	test_reduction tests_for_reduction_1 go;;
 
-let test_try_to_subst () = 
-	let go str_m str_n var_name = 
-		let g () = 
-			let f new_lambda = 
-				let str_lambda = string_of_lambda new_lambda in 
-				print_string "substituted OK, ";
-				print_string str_lambda;
-			in
-			let m = lambda_of_string str_m in
-			let n = lambda_of_string str_n in
-			let (substituted, new_lambda) = Hw1_reduction.try_to_subst m n var_name in
-			if substituted = false then print_string "NOT substituted "
-			else f new_lambda
-		in
-		g ();
-		print_string " For test: ";
-		print_string (str_m ^ ", " ^ str_n ^ ", " ^ var_name);
-		print_newline ()
-	in
-	go "x" "y" "y";
-	go "x" "\\y.y" "y";
-	go "\\x.x" "\\y.y" "y";
-	go "\\x.x" "\\x.y" "y";
-	go "\\x.x" "((\\a.a) (\\a.b)) (\\c.d)" "a";
-	go "\\x.x" "((\\a.a) (\\a.b)) (\\c.d)" "b";
-	go "\\x.x" "((\\a.a) (\\a.b)) (\\c.d)" "d";
-	go "\\x.x" "((\\a.d) (\\a.d)) (\\c.d)" "d";
-	go "\\x.x" "((\\a.a) (\\a.b)) (\\c.d)" "c";
-	go "x" "\\x.x" "x";
-	go "(\\x.x) x" "((\\x.a) (\\a.b)) (\\c.d)" "a";
-	go "y" "x x" "x";
-	go "(\\x.x) (\\x.x)" "x x x" "x"
-;;
-
 let test_reduce_to_normal_form () = 
 	let go str = 
 		let a = lambda_of_string str in
@@ -181,5 +151,5 @@ let test_reduce_to_normal_form () =
 	test_reduction tests_for_reduction_2 go;;
 
 (* test_normal_beta_reduction ();; *)
-(* test_try_to_subst ();; *)
 test_reduce_to_normal_form();;
+(* test_is_alpha_equivalent();; *)
