@@ -90,4 +90,124 @@ let infer_simp_type l =
 type hm_lambda = HM_Var of string | HM_Abs of string * hm_lambda | HM_App of hm_lambda * hm_lambda | HM_Let of string * hm_lambda * hm_lambda
 type hm_type = HM_Elem of string | HM_Arrow of hm_type * hm_type | HM_ForAll of string * hm_type
 
-let algorithm_w hm_lam = failwith "Not implemented yet";;
+module StringSet = Set.Make(String);;
+exception SmthWentWrong of string;; 
+
+let algorithm_w hm_lam = 	
+	let fresh_name_counter = ref 0 in
+	let generate_fresh_name () = 
+		fresh_name_counter := !fresh_name_counter + 1;
+		"ß" ^ (string_of_int !fresh_name_counter )
+	in
+	let rec to_aterm hmt = 
+		match hmt with
+	  	| HM_Arrow(x, y) -> Hw2_unify.Fun ("aw",  [(to_aterm x); (to_aterm y)])
+		| HM_Elem v -> Hw2_unify.Var v
+	  	| _ -> failwith "Smth went wrong" 
+	in	 
+	let rec from_aterm term = 
+		match term with
+	  	| Hw2_unify.Fun(name, [x; y]) -> HM_Arrow (from_aterm x, from_aterm y)
+		| Hw2_unify.Var v -> HM_Elem v
+	  	| _ -> failwith "Smth went wrong" 
+	in
+
+
+	let rec algorithm_w_impl hmlmb types = 
+
+		let rec try_to_subst subst hmt set_of_vars = 
+			match hmt with
+		  	| HM_ForAll (x, y) -> HM_ForAll(x, try_to_subst subst y (StringSet.add x set_of_vars))
+		  	| HM_Arrow (x, y) -> HM_Arrow(try_to_subst subst x set_of_vars, try_to_subst subst y set_of_vars)
+			| HM_Elem x -> 
+				if StringSet.mem x set_of_vars then hmt
+				else if StringMap.mem x subst then StringMap.find x subst
+				else hmt
+		in
+		let combine_substs f1 f2 = 
+			StringMap.fold 
+				(fun x y m -> 
+				if StringMap.mem x m then m else StringMap.add x y m) f1
+				(StringMap.fold (fun x y m -> StringMap.add x (try_to_subst f1 y StringSet.empty) m)
+				f2 StringMap.empty) 
+		in
+		let infer_subst_types subst tps = 
+			StringMap.fold (fun x y m -> StringMap.add x (try_to_subst subst y StringSet.empty) m)
+			tps StringMap.empty
+		in
+
+		let var_case v =
+			let rec del hmt = 
+				match hmt with
+				| HM_ForAll(x, y) -> try_to_subst (StringMap.add x (HM_Elem(generate_fresh_name ())) StringMap.empty)
+					(del y) StringSet.empty
+			  	| _ -> hmt 
+			in
+			if StringMap.mem v types
+			then (del (StringMap.find v types), StringMap.empty)
+			else raise (SmthWentWrong "Any type")
+		in
+		let abs_case x y =
+	  		let fresh_type = HM_Elem (generate_fresh_name ()) in
+			let (hmt, types) = algorithm_w_impl y (StringMap.add x fresh_type (StringMap.remove x types)) in
+			(HM_Arrow(try_to_subst types fresh_type StringSet.empty, hmt), types)
+		in
+		let app_case lhs rhs =
+		 	let (hmt_left, types_left) = algorithm_w_impl lhs types in
+			let (hmt_right, types_right) = algorithm_w_impl rhs (infer_subst_types types_left types) in
+			let fresh_type = HM_Elem (generate_fresh_name ()) in
+			match solve_system ([((to_aterm (try_to_subst types_right hmt_left StringSet.empty)),
+				(to_aterm (HM_Arrow(hmt_right, fresh_type))))]) with
+		  	| Some x -> 	
+		  		let finale_types = combine_substs 
+				(List.fold_left (fun mp (s, term) -> StringMap.add s (from_aterm term) mp)
+				StringMap.empty x) (combine_substs types_right types_left) in
+				(try_to_subst finale_types fresh_type StringSet.empty, finale_types)
+			| None -> raise (SmthWentWrong "Incompatible system")
+		in
+		let let_case x y z =
+			let _add hmt types = 
+				let rec unblock hmt blocked = 
+					match hmt with
+					| HM_Elem v -> if StringSet.mem v blocked then StringSet.empty
+						else StringSet.singleton v
+				  	| HM_Arrow (x, y) -> StringSet.union (unblock x blocked) (unblock y blocked)
+				  	| HM_ForAll (x, y) -> unblock y (StringSet.add x blocked)
+				in
+				let get_known_types tps = 
+					 StringMap.fold (fun extra x s -> 
+					 	StringSet.union (unblock x StringSet.empty) s) tps StringSet.empty
+				in
+				let known_types = get_known_types types in
+				StringSet.fold (fun x y -> HM_ForAll(x, y)) 
+				(StringSet.fold (fun x y -> 
+					match StringSet.mem x known_types with
+					| false -> StringSet.add x y
+					| true -> y)
+				(unblock hmt StringSet.empty) StringSet.empty) hmt 
+			in	
+	  		let (hmt1, types1) = algorithm_w_impl y types in 
+			let fresh_types = infer_subst_types types1 types in 
+			let (hmt2, types2) = algorithm_w_impl z (StringMap.add x (_add hmt1 fresh_types)
+			(StringMap.remove x fresh_types)) in (hmt2, combine_substs types2 types1)
+		in
+
+		match hmlmb with
+		| HM_Var v -> var_case v
+	  	| HM_Abs (x, y) -> abs_case x y
+	  	| HM_App (lhs, rhs) -> app_case lhs rhs
+	  	| HM_Let (x, y, z) -> let_case x y z
+	in
+
+
+	let types = StringSet.fold (fun x map -> StringMap.add x (HM_Elem (generate_fresh_name ())) map)
+	((fun x -> 
+		let rec f hmlmb set = 
+			match hmlmb with
+			| HM_Var v -> if StringSet.mem v set then StringSet.empty else StringSet.singleton v
+		  	| HM_Abs (x, y) -> f y (StringSet.add x set)
+		  	| HM_App (lhs, rhs) -> StringSet.union (f lhs set) (f rhs set)
+		  	| HM_Let (x, y, z) -> StringSet.union (f y set) (f z (StringSet.add x set))
+		in f x StringSet.empty) hm_lam) StringMap.empty in
+	try let (hmt, map) = algorithm_w_impl hm_lam types in Some (StringMap.bindings map, hmt) with
+	(SmthWentWrong sww) -> None;;
